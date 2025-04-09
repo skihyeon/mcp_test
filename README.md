@@ -98,9 +98,27 @@ python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery
 ## 특징
 
 - 운영체제 자동 감지: Windows, macOS, Linux 환경에 맞게 자동 설정
-- Windows에서는 `npx` 대신 `npx.cmd` 사용
+- **Windows에서는 `cmd /c npx` 형식 사용** (업데이트됨)
 - 각 OS별 Cursor 설정 경로 자동 감지
 - 설정 가져오기/내보내기 시 OS 호환성 자동 처리
+
+## OS별 명령어 형식
+
+- **Windows**:
+  ```json
+  {
+    "command": "cmd",
+    "args": ["/c", "npx", "-y", "@smithery/cli@latest", "..."]
+  }
+  ```
+
+- **macOS/Linux**:
+  ```json
+  {
+    "command": "npx",
+    "args": ["-y", "@smithery/cli@latest", "..."]
+  }
+  ```
 
 ## 참고사항
 

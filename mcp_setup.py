@@ -148,6 +148,15 @@ class MCPSetup:
             print_colored(f"MCP 설정 저장 오류: {str(e)}", Colors.FAIL)
             return False
     
+    def get_mcp_command_args(self, base_args: List[str], command_type: str = 'default') -> tuple:
+        """OS별 MCP 명령어와 인자 반환"""
+        if OSInfo.is_windows():
+            # Windows에서는 cmd /c npx ... 형태로 실행
+            return 'cmd', ['/c', 'npx'] + base_args
+        else:
+            # macOS, Linux에서는 npx ... 형태로 실행
+            return 'npx', base_args
+    
     def add_mcp_server(self, name: str, command: str, args: List[str]) -> bool:
         """MCP 서버 추가"""
         config = self.load_mcp_config()
@@ -156,9 +165,11 @@ class MCPSetup:
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
         
-        # OS별로 명령어 수정
-        if command == "npx" and OSInfo.is_windows():
-            command = "npx.cmd"
+        # OS별로 명령어와 인자 조정
+        if command == "npx":
+            if OSInfo.is_windows():
+                command = 'cmd'
+                args = ['/c', 'npx'] + args
         
         # 서버 설정 추가
         config['mcpServers'][name] = {
@@ -220,12 +231,17 @@ class MCPSetup:
             if 'mcpServers' in config:
                 for name, server in config['mcpServers'].items():
                     command = server.get('command', '')
+                    args = server.get('args', [])
                     
-                    # npx 명령어 Windows용으로 변환
-                    if command == "npx" and OSInfo.is_windows():
-                        server['command'] = "npx.cmd"
-                    elif command == "npx.cmd" and not OSInfo.is_windows():
-                        server['command'] = "npx"
+                    # Windows와 다른 OS 사이의 명령어 변환
+                    if OSInfo.is_windows() and command == "npx":
+                        # 다른 OS 형식(npx)에서 Windows 형식(cmd /c npx)으로 변환
+                        server['command'] = 'cmd'
+                        server['args'] = ['/c', 'npx'] + args
+                    elif not OSInfo.is_windows() and command == "cmd" and args and args[0] == "/c" and args[1] == "npx":
+                        # Windows 형식(cmd /c npx)에서 다른 OS 형식(npx)으로 변환
+                        server['command'] = 'npx'
+                        server['args'] = args[2:]  # '/c'와 'npx' 제거
             
             return self.save_mcp_config(config)
         except json.JSONDecodeError:
@@ -245,33 +261,45 @@ class MCPSetup:
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
         
+        # 기본 인자 설정
+        think_args = [
+            '-y',
+            '@smithery/cli@latest',
+            'run',
+            '@PhillipRt/think-mcp-server',
+            '--key',
+            'f120217f-d8f9-4b5e-b9c9-cf9feb0aad83'
+        ]
+        
+        sequential_args = [
+            '-y',
+            '@smithery/cli@latest',
+            'run',
+            '@smithery-ai/server-sequential-thinking',
+            '--key',
+            'f120217f-d8f9-4b5e-b9c9-cf9feb0aad83'
+        ]
+        
         # OS별 명령어 설정
-        npx_command = "npx.cmd" if OSInfo.is_windows() else "npx"
+        if OSInfo.is_windows():
+            # Windows에서는 cmd /c npx ... 형태로 실행
+            think_cmd, think_full_args = 'cmd', ['/c', 'npx'] + think_args
+            seq_cmd, seq_full_args = 'cmd', ['/c', 'npx'] + sequential_args
+        else:
+            # macOS, Linux에서는 npx ... 형태로 실행
+            think_cmd, think_full_args = 'npx', think_args
+            seq_cmd, seq_full_args = 'npx', sequential_args
         
         # Think MCP 서버 설정
         config['mcpServers']['think-mcp-server'] = {
-            'command': npx_command,
-            'args': [
-                '-y',
-                '@smithery/cli@latest',
-                'run',
-                '@PhillipRt/think-mcp-server',
-                '--key',
-                'f120217f-d8f9-4b5e-b9c9-cf9feb0aad83'
-            ]
+            'command': think_cmd,
+            'args': think_full_args
         }
         
         # Sequential Thinking 서버 설정
         config['mcpServers']['server-sequential-thinking'] = {
-            'command': npx_command,
-            'args': [
-                '-y',
-                '@smithery/cli@latest',
-                'run',
-                '@smithery-ai/server-sequential-thinking',
-                '--key',
-                'f120217f-d8f9-4b5e-b9c9-cf9feb0aad83'
-            ]
+            'command': seq_cmd,
+            'args': seq_full_args
         }
         
         result = self.save_mcp_config(config)
@@ -291,20 +319,28 @@ class MCPSetup:
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
         
+        # 기본 인자 설정
+        github_args = [
+            '-y',
+            '@smithery/cli@latest',
+            'run',
+            '@smithery-ai/github',
+            '--config',
+            f'{{"githubPersonalAccessToken":"{token}"}}'
+        ]
+        
         # OS별 명령어 설정
-        npx_command = "npx.cmd" if OSInfo.is_windows() else "npx"
+        if OSInfo.is_windows():
+            # Windows에서는 cmd /c npx ... 형태로 실행
+            github_cmd, github_full_args = 'cmd', ['/c', 'npx'] + github_args
+        else:
+            # macOS, Linux에서는 npx ... 형태로 실행
+            github_cmd, github_full_args = 'npx', github_args
         
         # GitHub MCP 서버 설정
         config['mcpServers']['github'] = {
-            'command': npx_command,
-            'args': [
-                '-y',
-                '@smithery/cli@latest',
-                'run',
-                '@smithery-ai/github',
-                '--config',
-                f'{{"githubPersonalAccessToken":"{token}"}}'
-            ]
+            'command': github_cmd,
+            'args': github_full_args
         }
         
         result = self.save_mcp_config(config)
