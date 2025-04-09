@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 환경 설정
+.env
+.venv
+env/
+venv/
+
+# 백업 파일
+backups/
+
+# IDE 파일
+.vscode/
+.idea/ 
