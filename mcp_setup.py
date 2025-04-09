@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import json
 import shutil
+import platform
 import argparse
 import subprocess
 from pathlib import Path
@@ -25,10 +27,69 @@ def print_colored(text: str, color: str):
     """컬러 텍스트 출력"""
     print(f"{color}{text}{Colors.ENDC}")
 
+class OSInfo:
+    """운영 체제 정보"""
+    @staticmethod
+    def get_os_type():
+        """운영 체제 타입 반환"""
+        system = platform.system().lower()
+        if system == "darwin":
+            return "macos"
+        elif system == "windows":
+            return "windows"
+        elif system == "linux":
+            return "linux"
+        else:
+            return "unknown"
+    
+    @staticmethod
+    def is_windows():
+        """Windows 확인"""
+        return platform.system().lower() == "windows"
+    
+    @staticmethod
+    def is_macos():
+        """macOS 확인"""
+        return platform.system().lower() == "darwin"
+    
+    @staticmethod
+    def is_linux():
+        """Linux 확인"""
+        return platform.system().lower() == "linux"
+    
+    @staticmethod
+    def get_home_dir():
+        """홈 디렉토리 반환"""
+        return Path.home()
+    
+    @staticmethod
+    def get_os_details():
+        """OS 상세 정보 반환"""
+        return {
+            "system": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+            "python_version": platform.python_version()
+        }
+
 class MCPSetup:
     def __init__(self):
-        self.home_dir = Path.home()
-        self.cursor_dir = self.home_dir / '.cursor'
+        self.os_type = OSInfo.get_os_type()
+        self.home_dir = OSInfo.get_home_dir()
+        
+        # OS별 Cursor 설정 경로
+        if OSInfo.is_windows():
+            # Windows에서는 %USERPROFILE%\.cursor
+            self.cursor_dir = self.home_dir / '.cursor'
+        elif OSInfo.is_macos():
+            # macOS에서는 ~/Library/Application Support/Cursor
+            self.cursor_dir = self.home_dir / 'Library' / 'Application Support' / 'Cursor'
+        else:
+            # Linux에서는 ~/.cursor
+            self.cursor_dir = self.home_dir / '.cursor'
+            
         self.mcp_json_path = self.cursor_dir / 'mcp.json'
         self.current_dir = Path.cwd()
         self.target_dir = self.current_dir / 'mcp_setup'
@@ -36,6 +97,10 @@ class MCPSetup:
         
         # 필요한 디렉토리 생성
         self.backup_dir.mkdir(exist_ok=True, parents=True)
+        
+        # OS 정보 출력
+        print_colored(f"감지된 운영 체제: {self.os_type}", Colors.CYAN)
+        print_colored(f"Cursor 설정 경로: {self.cursor_dir}", Colors.CYAN)
     
     def load_mcp_config(self) -> Dict:
         """MCP 설정 파일 로드"""
@@ -90,6 +155,10 @@ class MCPSetup:
         # mcpServers 키가 없으면 생성
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
+        
+        # OS별로 명령어 수정
+        if command == "npx" and OSInfo.is_windows():
+            command = "npx.cmd"
         
         # 서버 설정 추가
         config['mcpServers'][name] = {
@@ -147,6 +216,17 @@ class MCPSetup:
             with open(input_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
             
+            # OS별 명령어 자동 변환
+            if 'mcpServers' in config:
+                for name, server in config['mcpServers'].items():
+                    command = server.get('command', '')
+                    
+                    # npx 명령어 Windows용으로 변환
+                    if command == "npx" and OSInfo.is_windows():
+                        server['command'] = "npx.cmd"
+                    elif command == "npx.cmd" and not OSInfo.is_windows():
+                        server['command'] = "npx"
+            
             return self.save_mcp_config(config)
         except json.JSONDecodeError:
             print_colored(f"MCP 설정 파일 파싱 오류: {input_path}", Colors.FAIL)
@@ -165,9 +245,12 @@ class MCPSetup:
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
         
+        # OS별 명령어 설정
+        npx_command = "npx.cmd" if OSInfo.is_windows() else "npx"
+        
         # Think MCP 서버 설정
         config['mcpServers']['think-mcp-server'] = {
-            'command': 'npx',
+            'command': npx_command,
             'args': [
                 '-y',
                 '@smithery/cli@latest',
@@ -180,7 +263,7 @@ class MCPSetup:
         
         # Sequential Thinking 서버 설정
         config['mcpServers']['server-sequential-thinking'] = {
-            'command': 'npx',
+            'command': npx_command,
             'args': [
                 '-y',
                 '@smithery/cli@latest',
@@ -208,9 +291,12 @@ class MCPSetup:
         if 'mcpServers' not in config:
             config['mcpServers'] = {}
         
+        # OS별 명령어 설정
+        npx_command = "npx.cmd" if OSInfo.is_windows() else "npx"
+        
         # GitHub MCP 서버 설정
         config['mcpServers']['github'] = {
-            'command': 'npx',
+            'command': npx_command,
             'args': [
                 '-y',
                 '@smithery/cli@latest',
@@ -242,6 +328,20 @@ class MCPSetup:
             print(f"  인자: {' '.join(server.get('args', []))}")
         
         print_colored("\n========================", Colors.HEADER)
+    
+    def show_os_info(self) -> None:
+        """OS 정보 표시"""
+        os_details = OSInfo.get_os_details()
+        
+        print_colored("\n===== 시스템 정보 =====", Colors.HEADER)
+        print(f"운영 체제: {os_details['system']}")
+        print(f"버전: {os_details['release']} ({os_details['version']})")
+        print(f"아키텍처: {os_details['machine']}")
+        print(f"프로세서: {os_details['processor']}")
+        print(f"Python 버전: {os_details['python_version']}")
+        print(f"Cursor 설정 경로: {self.cursor_dir}")
+        print(f"MCP 설정 파일: {self.mcp_json_path}")
+        print_colored("========================", Colors.HEADER)
 
 def setup_argument_parser():
     """명령행 인자 파서 설정"""
@@ -278,6 +378,9 @@ def setup_argument_parser():
     
     # 백업 명령
     subparsers.add_parser('backup', help='MCP 설정 백업')
+    
+    # 시스템 정보 명령
+    subparsers.add_parser('sysinfo', help='시스템 정보 표시')
     
     return parser
 
@@ -316,8 +419,11 @@ def main():
     elif args.command == 'backup':
         mcp_setup.backup_mcp_config()
     
+    elif args.command == 'sysinfo':
+        mcp_setup.show_os_info()
+    
     else:
-        print_colored("사용법: python mcp_setup.py {setup|github|add|remove|export|import|list|backup}", Colors.WARNING)
+        print_colored("사용법: python mcp_setup.py {setup|github|add|remove|export|import|list|backup|sysinfo}", Colors.WARNING)
         parser.print_help()
 
 if __name__ == '__main__':

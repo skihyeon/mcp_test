@@ -9,6 +9,13 @@ MCP(Model Control Protocol) 자동 설정 도구입니다. 커서(Cursor)에서 
 - 사용자 정의 MCP 서버 추가/제거
 - MCP 설정 백업 및 복원
 - MCP 설정 내보내기/가져오기
+- **자동 OS 감지 및 OS별 최적화 설정**
+
+## 지원 운영체제
+
+- Windows
+- macOS
+- Linux
 
 ## 사용 방법
 
@@ -64,6 +71,12 @@ python mcp_setup.py backup
 python mcp_setup.py list
 ```
 
+### 시스템 정보 확인
+
+```bash
+python mcp_setup.py sysinfo
+```
+
 ## 예제
 
 ### 모든 기본 MCP 설정 (think, sequential-thinking, github)
@@ -79,10 +92,20 @@ python mcp_setup.py github --token ghp_YOUR_TOKEN_HERE
 ### 사용자 정의 MCP 서버 추가
 
 ```bash
-python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery/cli@latest,run,@smithery-ai/custom-tool,--key,your-key-here"
+python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery/cli@latest,run,@smithery-ai/custom-tool,--key,키값"
 ```
+
+## 특징
+
+- 운영체제 자동 감지: Windows, macOS, Linux 환경에 맞게 자동 설정
+- Windows에서는 `npx` 대신 `npx.cmd` 사용
+- 각 OS별 Cursor 설정 경로 자동 감지
+- 설정 가져오기/내보내기 시 OS 호환성 자동 처리
 
 ## 참고사항
 
-- 설정은 `~/.cursor/mcp.json` 파일에 저장됩니다.
+- 설정은 운영체제에 따라 다음 경로에 저장됩니다:
+  - Windows: `%USERPROFILE%\.cursor\mcp.json`
+  - macOS: `~/Library/Application Support/Cursor/mcp.json`
+  - Linux: `~/.cursor/mcp.json`
 - 백업 파일은 `./mcp_setup/backups/` 디렉토리에 저장됩니다. 
