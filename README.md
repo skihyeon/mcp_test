@@ -1,0 +1,88 @@
+# MCP Setup Tool
+
+MCP(Model Control Protocol) 자동 설정 도구입니다. 커서(Cursor)에서 작동하는 다양한 MCP 서버를 손쉽게 설정할 수 있습니다.
+
+## 기능
+
+- MCP 서버 자동 설정
+- GitHub MCP 서버 설정
+- 사용자 정의 MCP 서버 추가/제거
+- MCP 설정 백업 및 복원
+- MCP 설정 내보내기/가져오기
+
+## 사용 방법
+
+### 기본 MCP 서버 설정
+
+```bash
+python mcp_setup.py setup
+```
+
+이 명령은 다음 MCP 서버를 설정합니다:
+- `think-mcp-server`
+- `server-sequential-thinking`
+
+### GitHub MCP 서버 설정
+
+```bash
+python mcp_setup.py github --token YOUR_GITHUB_TOKEN
+```
+
+### MCP 서버 추가
+
+```bash
+python mcp_setup.py add --name 서버이름 --command 명령어 --args 인자1,인자2,인자3
+```
+
+### MCP 서버 제거
+
+```bash
+python mcp_setup.py remove --name 서버이름
+```
+
+### MCP 설정 내보내기
+
+```bash
+python mcp_setup.py export --output 파일경로
+```
+
+### MCP 설정 가져오기
+
+```bash
+python mcp_setup.py import --input 파일경로
+```
+
+### MCP 설정 백업
+
+```bash
+python mcp_setup.py backup
+```
+
+### MCP 서버 목록 조회
+
+```bash
+python mcp_setup.py list
+```
+
+## 예제
+
+### 모든 기본 MCP 설정 (think, sequential-thinking, github)
+
+```bash
+# 기본 MCP 서버 설정
+python mcp_setup.py setup
+
+# GitHub MCP 설정 (토큰 필요)
+python mcp_setup.py github --token ghp_YOUR_TOKEN_HERE
+```
+
+### 사용자 정의 MCP 서버 추가
+
+```bash
+python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery/cli@latest,run,@smithery-ai/custom-tool,--key,your-key-here"
+```
+
+## 참고사항
+
+- 설정은 `~/.cursor/mcp.json` 파일에 저장됩니다.
+- 백업 파일은 `./mcp_setup/backups/` 디렉토리에 저장됩니다. 
