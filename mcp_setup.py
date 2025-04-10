@@ -74,6 +74,117 @@ class OSInfo:
             "python_version": platform.python_version()
         }
 
+class NodeJSChecker:
+    """Node.js 확인 클래스"""
+    @staticmethod
+    def is_nodejs_installed():
+        """Node.js 설치 여부 확인"""
+        try:
+            # Windows와 다른 OS에 따라 명령어 조정
+            cmd = "node --version" if not OSInfo.is_windows() else "cmd /c node --version"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            return result.returncode == 0 and result.stdout.strip().startswith("v")
+        except Exception:
+            return False
+    
+    @staticmethod
+    def get_nodejs_version():
+        """Node.js 버전 반환"""
+        if not NodeJSChecker.is_nodejs_installed():
+            return None
+        
+        try:
+            cmd = "node --version" if not OSInfo.is_windows() else "cmd /c node --version"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return None
+        except Exception:
+            return None
+
+class MCPInstaller:
+    """MCP 설치 클래스"""
+    def __init__(self):
+        self.os_type = OSInfo.get_os_type()
+    
+    def run_install_command(self, command):
+        """설치 명령어 실행"""
+        try:
+            print_colored(f"명령 실행: {command}", Colors.CYAN)
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                print_colored("설치 성공!", Colors.GREEN)
+                return True, result.stdout
+            else:
+                print_colored(f"설치 실패: {result.stderr}", Colors.FAIL)
+                return False, result.stderr
+        except Exception as e:
+            print_colored(f"설치 명령 실행 중 오류: {str(e)}", Colors.FAIL)
+            return False, str(e)
+    
+    def install_sequential_thinking(self):
+        """Sequential Thinking MCP 설치"""
+        base_cmd = "npx -y @smithery/cli@latest install @smithery-ai/server-sequential-thinking --client cursor --key f120217f-d8f9-4b5e-b9c9-cf9feb0aad83"
+        
+        if OSInfo.is_windows():
+            cmd = f"cmd /c {base_cmd}"
+        else:
+            cmd = base_cmd
+        
+        return self.run_install_command(cmd)
+    
+    def install_think_server(self):
+        """Think MCP Server 설치"""
+        base_cmd = "npx -y @smithery/cli@latest install @PhillipRt/think-mcp-server --client cursor --key f120217f-d8f9-4b5e-b9c9-cf9feb0aad83"
+        
+        if OSInfo.is_windows():
+            cmd = f"cmd /c {base_cmd}"
+        else:
+            cmd = base_cmd
+        
+        return self.run_install_command(cmd)
+    
+    def install_github(self, token):
+        """GitHub MCP 설치"""
+        # 토큰에서 따옴표 처리
+        token = token.replace('"', '\\"')
+        
+        base_cmd = f'npx -y @smithery/cli@latest install @smithery-ai/github --client cursor --config "\\"{{\\\"githubPersonalAccessToken\\\":\\\"{token}\\\"}}\\"" '
+        
+        if OSInfo.is_windows():
+            cmd = f"cmd /c {base_cmd}"
+        else:
+            cmd = base_cmd
+        
+        return self.run_install_command(cmd)
+    
+    def install_all_mcps(self, github_token=None):
+        """모든 MCP 설치"""
+        # Node.js 설치 확인
+        if not NodeJSChecker.is_nodejs_installed():
+            print_colored("Node.js가 설치되어 있어야 합니다.", Colors.FAIL)
+            return False
+        
+        node_version = NodeJSChecker.get_nodejs_version()
+        print_colored(f"감지된 Node.js 버전: {node_version}", Colors.CYAN)
+        
+        # Sequential Thinking MCP 설치
+        print_colored("\n===== Sequential Thinking MCP 설치 =====", Colors.HEADER)
+        success_seq, _ = self.install_sequential_thinking()
+        
+        # Think Server MCP 설치
+        print_colored("\n===== Think Server MCP 설치 =====", Colors.HEADER)
+        success_think, _ = self.install_think_server()
+        
+        # GitHub MCP 설치 (토큰이 제공된 경우)
+        success_github = True
+        if github_token:
+            print_colored("\n===== GitHub MCP 설치 =====", Colors.HEADER)
+            success_github, _ = self.install_github(github_token)
+        
+        return success_seq and success_think and success_github
+
 class MCPSetup:
     def __init__(self):
         self.os_type = OSInfo.get_os_type()
@@ -253,6 +364,11 @@ class MCPSetup:
     
     def setup_default_mcp_servers(self) -> bool:
         """기본 MCP 서버 설정"""
+        # Node.js 설치 확인
+        if not NodeJSChecker.is_nodejs_installed():
+            print_colored("Node.js가 설치되어 있어야 합니다.", Colors.FAIL)
+            return False
+        
         # 백업 먼저 수행
         self.backup_mcp_config()
         
@@ -310,6 +426,11 @@ class MCPSetup:
     
     def setup_github_mcp(self, token: str) -> bool:
         """GitHub MCP 설정"""
+        # Node.js 설치 확인
+        if not NodeJSChecker.is_nodejs_installed():
+            print_colored("Node.js가 설치되어 있어야 합니다.", Colors.FAIL)
+            return False
+            
         if not token:
             print_colored("GitHub 토큰이 필요합니다.", Colors.WARNING)
             return False
@@ -349,6 +470,30 @@ class MCPSetup:
         
         return result
     
+    def setup_all(self, github_token=None):
+        """모든 MCP 설정"""
+        # Node.js 설치 확인
+        if not NodeJSChecker.is_nodejs_installed():
+            print_colored("Node.js가 설치되어 있어야 합니다.", Colors.FAIL)
+            return False
+            
+        # MCP 설치
+        installer = MCPInstaller()
+        install_success = installer.install_all_mcps(github_token)
+        
+        if not install_success:
+            print_colored("MCP 설치 중 문제가 발생했습니다.", Colors.WARNING)
+            # 설치 문제가 있어도 설정은 진행
+        
+        # 기본 MCP 서버 설정
+        setup_success = self.setup_default_mcp_servers()
+        
+        # GitHub MCP 서버 설정 (토큰이 제공된 경우)
+        if github_token and setup_success:
+            self.setup_github_mcp(github_token)
+        
+        return setup_success
+        
     def list_mcp_servers(self) -> None:
         """MCP 서버 목록 출력"""
         config = self.load_mcp_config()
@@ -375,6 +520,13 @@ class MCPSetup:
         print(f"아키텍처: {os_details['machine']}")
         print(f"프로세서: {os_details['processor']}")
         print(f"Python 버전: {os_details['python_version']}")
+        
+        # Node.js 정보 표시
+        node_installed = NodeJSChecker.is_nodejs_installed()
+        node_version = NodeJSChecker.get_nodejs_version() if node_installed else "설치되지 않음"
+        print(f"Node.js 설치 여부: {node_installed}")
+        print(f"Node.js 버전: {node_version}")
+        
         print(f"Cursor 설정 경로: {self.cursor_dir}")
         print(f"MCP 설정 파일: {self.mcp_json_path}")
         print_colored("========================", Colors.HEADER)
@@ -418,6 +570,14 @@ def setup_argument_parser():
     # 시스템 정보 명령
     subparsers.add_parser('sysinfo', help='시스템 정보 표시')
     
+    # MCP 설치 명령
+    install_parser = subparsers.add_parser('install', help='MCP 설치')
+    install_parser.add_argument('--github-token', help='GitHub MCP 설치에 사용할 토큰')
+    
+    # 모든 설정 명령 (설치 + 설정)
+    all_parser = subparsers.add_parser('all', help='MCP 설치 및 설정 모두 수행')
+    all_parser.add_argument('--github-token', help='GitHub MCP 설치 및 설정에 사용할 토큰')
+    
     return parser
 
 def main():
@@ -457,9 +617,20 @@ def main():
     
     elif args.command == 'sysinfo':
         mcp_setup.show_os_info()
+        
+    elif args.command == 'install':
+        if not NodeJSChecker.is_nodejs_installed():
+            print_colored("Node.js가 설치되어 있어야 합니다.", Colors.FAIL)
+            return
+        
+        installer = MCPInstaller()
+        installer.install_all_mcps(args.github_token)
+        
+    elif args.command == 'all':
+        mcp_setup.setup_all(args.github_token)
     
     else:
-        print_colored("사용법: python mcp_setup.py {setup|github|add|remove|export|import|list|backup|sysinfo}", Colors.WARNING)
+        print_colored("사용법: python mcp_setup.py {setup|github|add|remove|export|import|list|backup|sysinfo|install|all}", Colors.WARNING)
         parser.print_help()
 
 if __name__ == '__main__':

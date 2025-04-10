@@ -10,6 +10,13 @@ MCP(Model Control Protocol) 자동 설정 도구입니다. 커서(Cursor)에서 
 - MCP 설정 백업 및 복원
 - MCP 설정 내보내기/가져오기
 - **자동 OS 감지 및 OS별 최적화 설정**
+- **Node.js 설치 자동 확인**
+- **MCP 패키지 자동 설치**
+
+## 요구사항
+
+- Python 3.6 이상
+- **Node.js** (자동으로 설치 여부 확인)
 
 ## 지원 운영체제
 
@@ -18,6 +25,26 @@ MCP(Model Control Protocol) 자동 설정 도구입니다. 커서(Cursor)에서 
 - Linux
 
 ## 사용 방법
+
+### MCP 설치 및 설정 한번에 진행 (권장)
+
+```bash
+# GitHub을 포함한 모든 MCP 설치 및 설정
+python mcp_setup.py all --github-token YOUR_GITHUB_TOKEN
+
+# GitHub 제외하고 기본 MCP 설치 및 설정
+python mcp_setup.py all
+```
+
+### MCP 패키지만 설치
+
+```bash
+# GitHub을 포함한 모든 MCP 설치
+python mcp_setup.py install --github-token YOUR_GITHUB_TOKEN
+
+# GitHub 제외하고 기본 MCP 설치
+python mcp_setup.py install
+```
 
 ### 기본 MCP 서버 설정
 
@@ -77,15 +104,42 @@ python mcp_setup.py list
 python mcp_setup.py sysinfo
 ```
 
+## 설치되는 MCP 패키지
+
+- **Sequential Thinking MCP**
+  ```
+  npx -y @smithery/cli@latest install @smithery-ai/server-sequential-thinking --client cursor --key f120217f-d8f9-4b5e-b9c9-cf9feb0aad83
+  ```
+
+- **Think MCP Server**
+  ```
+  npx -y @smithery/cli@latest install @PhillipRt/think-mcp-server --client cursor --key f120217f-d8f9-4b5e-b9c9-cf9feb0aad83
+  ```
+
+- **GitHub MCP** (토큰 제공 시)
+  ```
+  npx -y @smithery/cli@latest install @smithery-ai/github --client cursor --config '{"githubPersonalAccessToken":"YOUR_GITHUB_TOKEN"}'
+  ```
+
 ## 예제
 
-### 모든 기본 MCP 설정 (think, sequential-thinking, github)
+### 모든 MCP 설치 및 설정 (권장)
 
 ```bash
-# 기본 MCP 서버 설정
+# 설치와 설정을 한번에 진행
+python mcp_setup.py all --github-token ghp_YOUR_TOKEN_HERE
+```
+
+### 개별 설치 및 설정
+
+```bash
+# 1. MCP 패키지 설치
+python mcp_setup.py install --github-token ghp_YOUR_TOKEN_HERE
+
+# 2. 기본 MCP 서버 설정
 python mcp_setup.py setup
 
-# GitHub MCP 설정 (토큰 필요)
+# 3. GitHub MCP 설정 (토큰 필요)
 python mcp_setup.py github --token ghp_YOUR_TOKEN_HERE
 ```
 
@@ -101,6 +155,8 @@ python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery
 - **Windows에서는 `cmd /c npx` 형식 사용** (업데이트됨)
 - 각 OS별 Cursor 설정 경로 자동 감지
 - 설정 가져오기/내보내기 시 OS 호환성 자동 처리
+- **Node.js 설치 여부 자동 확인**
+- **실행 전 의존성 검사**
 
 ## OS별 명령어 형식
 
@@ -122,6 +178,7 @@ python mcp_setup.py add --name "custom-mcp" --command "npx" --args "-y,@smithery
 
 ## 참고사항
 
+- Node.js가 설치되어 있지 않으면 "Node.js가 설치되어 있어야 합니다." 메시지가 표시됩니다.
 - 설정은 운영체제에 따라 다음 경로에 저장됩니다:
   - Windows: `%USERPROFILE%\.cursor\mcp.json`
   - macOS: `~/Library/Application Support/Cursor/mcp.json`
